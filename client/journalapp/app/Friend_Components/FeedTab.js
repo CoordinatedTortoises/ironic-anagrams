@@ -66,7 +66,8 @@ export default class FeedTab extends Component {
   }
 
 
-  getAllFriendsMessages() {
+  getAllFriendsMessages(tags) {
+    tags = tags || [];
     var count = 0;
     var cb = () => {
       count++;
@@ -74,21 +75,27 @@ export default class FeedTab extends Component {
         const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
         //Sort the entries by date
         var cloneMessages = this.state.allMessages.slice();
+        console.log('clone', cloneMessages);
         cloneMessages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         this.setState({
           entries: ds.cloneWithRows(cloneMessages)
         });
       }
     };
-    this.state.friendList.forEach(friend => this.getFriendPosts(friend.id, cb));
+    
+    // Clear the messages
+    this.setState({
+      allMessages: []
+    });
+
+    this.state.friendList.forEach(friend => this.getFriendPosts(friend.id, cb, tags));
   }
 
-
-  getFriendPosts(friendId, callback) {
+  getFriendPosts(friendId, callback, tags) {
     AsyncStorage.multiGet(['@MySuperStore:token', '@MySuperStore:url'], (err, store) => {
       var token = store[0][1];
       var url0 = store[1][1];
-      var url = `${url0}api/entries` + '/?userId=' + friendId.toString();
+      var url = `${url0}api/entries` + '/?userId=' + friendId.toString() + '&tags=' + JSON.stringify(tags);
       fetch(url, {
         method: 'GET',
         headers: {
@@ -110,7 +117,6 @@ export default class FeedTab extends Component {
     });
   }
 
-
   render() {
 
     return (
@@ -127,7 +133,7 @@ export default class FeedTab extends Component {
              marginBottom: 16, 
              marginTop: 12,
              backgroundColor: '#f9ebc3'}}
-           onChangeText={ (text) => this.props.filterTags(text) }/>
+           onChangeText={ (text) => this.props.filterTags(text, (tags) => this.getAllFriendsMessages(tags)) }/>
         <ScrollView>
           <EntryList
             entries={ this.state.entries } 
